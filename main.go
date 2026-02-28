@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,12 @@ func main() {
 	fmt.Printf("Generated Key: %s\n", key)
 	//Init gin router
 	r := gin.Default()
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "running",
+		})
+	})
+
 	api := r.Group("/api")
 	routes.SetupRoutes(api)
 
@@ -34,6 +41,10 @@ func main() {
 	r.GET("/dashboard", func(c *gin.Context) { c.File("./static/dashboard.html") })
 
 	// //Start the server
-	r.Run(":8080")
-	log.Println("Serever is running on http://localhost:8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	r.Run(":" + port)
+	log.Println("Server is running on http://localhost:" + port)
 }
