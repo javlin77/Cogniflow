@@ -1,7 +1,6 @@
 package main
 
 import (
-	"authentication/config"
 	"authentication/helpers"
 	"authentication/routes"
 	"fmt"
@@ -18,7 +17,10 @@ func main() {
 
 	log.Println("Starting application...")
 
-	key := config.GenerateRandomKey()
+	key := os.Getenv("JWT_SECRET")
+	if key == "" {
+		log.Fatal("JWT_SECRET not set")
+	}
 	helpers.SetJWTKey(key)
 	fmt.Printf("Generated Key: %s\n", key)
 	//Init gin router
