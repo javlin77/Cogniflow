@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cogniflow — Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    .dash { max-width: 1000px; margin: 0 auto; padding: 100px 24px 40px; }
+    .dash h1 { color: #5a3d8a; margin-bottom: 8px; font-size: 1.75rem; }
+    .dash .user { color: #6b4e9e; margin-bottom: 24px; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.3fr); gap: 24px; margin-top: 16px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+    .tile {
+      background: linear-gradient(160deg, #6b4e9e 0%, #5a3d8a 100%);
+      border-radius: 20px;
+      padding: 24px 24px 20px;
+      color: #fff;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+    }
+    .tile h2 { font-size: 1.2rem; margin-bottom: 6px; }
+    .tile p { font-size: 0.9rem; opacity: 0.9; margin-bottom: 14px; }
+    .stat { font-size: 1.7rem; font-weight: 700; margin: 4px 0; }
+    .meta { font-size: 0.85rem; opacity: 0.85; }
+    .sessions { margin-top: 12px; }
+    .sessions ul { list-style: none; margin-top: 6px; max-height: 180px; overflow-y: auto; }
+    .sessions li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.15); font-size: 0.85rem; }
+    .session-controls { margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.25); }
+    .mode-row { display: inline-flex; padding: 2px; background: rgba(255,255,255,0.18); border-radius: 999px; margin-bottom: 12px; }
+    .mode-pill {
+      border: none;
+      background: transparent;
+      color: #f5ecff;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .mode-pill.active { background: #fff; color: #6b4e9e; }
+    .session-controls .input-wrap input,
+    .session-controls .input-wrap select {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+    .session-controls .input-wrap select {
+      width: 100%;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .session-controls .input-wrap select option { color: #333; }
+    .timer-display {
+      margin-top: 8px;
+      font-size: 1.8rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    .session-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .session-buttons .btn-primary,
+    .session-buttons .btn-secondary {
+      flex: 1 1 100px;
+      margin-top: 0;
+      text-align: center;
+    }
+    .session-buttons button[disabled] {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .rating-row { display: flex; gap: 8px; margin: 12px 0 4px; justify-content: center; }
+    .rating-row button {
+      width: 32px; height: 32px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.7);
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .rating-row button.active { background: #fff; color: #6b4e9e; }
+    .on-task-row { display: flex; gap: 8px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+    .on-task-row button {
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.7);
+      background: transparent;
+      color: #fff;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .on-task-row button.active { background: #fff; color: #6b4e9e; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+    .modal-card { max-width: 420px; width: 90%; }
+
+    /* ── QUOTE TILE ── */
+    .quote-tile { display: flex; flex-direction: column; justify-content: space-between; }
+
+    .quote-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      width: fit-content;
+      margin-bottom: 18px;
+    }
+
+    .quote-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #a8f0c6;
+      box-shadow: 0 0 6px #a8f0c6;
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .quote-body { flex: 1; padding: 4px 0; }
+
+    .quote-mark {
+      font-family: 'DM Serif Display', serif;
+      font-size: 3.5rem;
+      line-height: 0.5;
+      opacity: 0.2;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .quote-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.08rem;
+      line-height: 1.65;
+      font-style: italic;
+      animation: fadeQ 0.7s ease;
+    }
+
+    .quote-author {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      opacity: 0.6;
+      font-weight: 500;
+      animation: fadeQ 0.7s 0.1s ease both;
+    }
+
+    @keyframes fadeQ {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .quote-footer {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .quote-day { font-size: 0.75rem; opacity: 0.5; }
+
+    .quote-next {
+      background: rgba(255,255,255,0.18);
+      border: none;
+      color: #fff;
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .quote-next:hover { background: rgba(255,255,255,0.3); }
+  </style>
+</head>
+<body>
+  <nav class="nav-top">
+    <span class="logo">CogniFlow</span>
+    <div class="nav">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/" id="logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="dash">
+    <h1>Dashboard</h1>
+    <p class="user" id="userInfo">Loading...</p>
+
+    <div class="grid">
+      <!-- LEFT TILE: UNCHANGED -->
+      <div class="tile">
+        <h2>🔵 Cognitive Fatigue Tracker</h2>
+        <p>Run a timer or stopwatch, then let AI judge your focus based on completion, pauses, self‑rating, and consistency.</p>
+
+        <div class="sessions">
+          <div class="stat" id="fatigueStat">—</div>
+          <div class="meta" id="fatigueMeta">No sessions yet. Start one below.</div>
+          <ul id="sessionList"></ul>
+        </div>
+
+        <div class="session-controls">
+          <div class="mode-row">
+            <button type="button" class="mode-pill active" data-mode="timer" id="modeTimer">Timer</button>
+            <button type="button" class="mode-pill" data-mode="stopwatch" id="modeStopwatch">Stopwatch</button>
+          </div>
+
+          <div class="input-wrap">
+            <select id="goal">
+              <option value="">What are you working on?</option>
+              <option value="coding">Coding</option>
+              <option value="studying">Studying</option>
+              <option value="research">Research / Reading</option>
+              <option value="video editing">Video editing</option>
+              <option value="writing">Writing</option>
+              <option value="revision">Revision</option>
+              <option value="problem solving">Problem solving</option>
+              <option value="content creation">Content creation</option>
+              <option value="office work">Office / admin work</option>
+            </select>
+          </div>
+
+          <div class="input-wrap" id="plannedRow">
+            <input type="number" id="plannedMin" placeholder="Timer minutes (e.g. 25)" min="5" step="5">
+          </div>
+
+          <div class="timer-display" id="timerDisplay">00:00</div>
+
+          <div class="session-buttons">
+            <button type="button" class="btn-primary" id="startBtn">Start</button>
+            <button type="button" class="btn-secondary" id="pauseBtn" disabled>Pause</button>
+            <button type="button" class="btn-secondary" id="endBtn" disabled>End</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT TILE: DAILY INSPIRATION -->
+      <div class="tile quote-tile">
+        <div>
+          <h2>✨ Daily Inspiration</h2>
+          <div class="quote-badge">
+            <span class="quote-dot"></span>
+            Quote of the day
+          </div>
+        </div>
+
+        <div class="quote-body">
+          <span class="quote-mark">"</span>
+          <div class="quote-text" id="quoteText"></div>
+          <div class="quote-author" id="quoteAuthor"></div>
+        </div>
+
+        <div class="quote-footer">
+          <span class="quote-day" id="quoteDay"></span>
+          <button class="quote-next" id="quoteNext">Next ↻</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="reflectionModal">
+    <div class="card modal-card">
+      <h1>Session reflection</h1>
+      <p class="sub">How did that block actually feel?</p>
+      <form id="reflectionForm">
+        <p class="meta">How focused were you? (1–5)</p>
+        <div class="rating-row" id="ratingRow">
+          <button type="button" data-rating="1">1</button>
+          <button type="button" data-rating="2">2</button>
+          <button type="button" data-rating="3" class="active">3</button>
+          <button type="button" data-rating="4">4</button>
+          <button type="button" data-rating="5">5</button>
+        </div>
+        <p class="meta" style="margin-top:12px;">Did you stay on task?</p>
+        <div class="on-task-row" id="onTaskRow">
+          <button type="button" data-value="yes" class="active">Yes</button>
+          <button type="button" data-value="somewhat">Somewhat</button>
+          <button type="button" data-value="no">No</button>
+        </div>
+        <div class="msg" id="reflectionMsg"></div>
+        <button type="submit" class="btn-primary">Save session</button>
+        <button type="button" class="btn-secondary" id="cancelReflection">Cancel</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* ════════ QUOTE OF THE DAY ════════ */
+    const QUOTES = [
+      { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+      { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+      { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+      { text: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
+      { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+      { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+      { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+      { text: "Hard work beats talent when talent doesn't work hard.", author: "Tim Notke" },
+      { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+      { text: "Little by little, one travels far.", author: "J.R.R. Tolkien" },
+      { text: "Do something today that your future self will thank you for.", author: "Sean Patrick Flanery" },
+      { text: "Energy and persistence conquer all things.", author: "Benjamin Franklin" },
+      { text: "Start where you are. Use what you have. Do what you can.", author: "Arthur Ashe" },
+      { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+      { text: "Strive not to be a success, but rather to be of value.", author: "Albert Einstein" },
+      { text: "In the middle of every difficulty lies opportunity.", author: "Albert Einstein" },
+      { text: "You miss 100% of the shots you don't take.", author: "Wayne Gretzky" },
+      { text: "Whether you think you can or you think you can't, you're right.", author: "Henry Ford" },
+      { text: "Opportunities don't happen. You create them.", author: "Chris Grosser" },
+      { text: "Nothing will work unless you do.", author: "Maya Angelou" },
+      { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+      { text: "Your time is limited, so don't waste it living someone else's life.", author: "Steve Jobs" },
+      { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+      { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+      { text: "Push yourself, because no one else is going to do it for you.", author: "Unknown" },
+      { text: "Great things never come from comfort zones.", author: "Unknown" },
+      { text: "You are braver than you believe, stronger than you seem, and smarter than you think.", author: "A.A. Milne" },
+      { text: "Set your goals high and don't stop till you get there.", author: "Bo Jackson" },
+      { text: "The harder I work, the luckier I get.", author: "Samuel Goldwyn" },
+      { text: "What you get by achieving your goals is not as important as what you become.", author: "Henry David Thoreau" },
+      { text: "Dream big and dare to fail.", author: "Norman Vaughan" },
+      { text: "Keep going. Everything you need will come to you at the perfect time.", author: "Unknown" },
+      { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
+{ text: "Small daily improvements over time lead to stunning results.", author: "Robin Sharma" },
+{ text: "Don’t limit your challenges. Challenge your limits.", author: "Jerry Dunn" },
+{ text: "Success usually comes to those who are too busy to be looking for it.", author: "Henry David Thoreau" },
+{ text: "The difference between ordinary and extraordinary is that little extra.", author: "Jimmy Johnson" },
+{ text: "If you’re going through hell, keep going.", author: "Winston Churchill" },
+{ text: "Doubt kills more dreams than failure ever will.", author: "Suzy Kassem" },
+{ text: "You don’t find willpower, you create it.", author: "Unknown" },
+{ text: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+{ text: "Don’t wait for opportunity. Create it.", author: "George Bernard Shaw" },
+{ text: "Great works are performed not by strength but by perseverance.", author: "Samuel Johnson" },
+{ text: "The pain you feel today will be the strength you feel tomorrow.", author: "Unknown" },
+{ text: "Success is not for the lazy.", author: "Unknown" },
+{ text: "Work hard in silence. Let success make the noise.", author: "Frank Ocean" },
+{ text: "Stay patient and trust your journey.", author: "Unknown" },
+{ text: "Consistency is what transforms average into excellence.", author: "Tony Robbins" },
+{ text: "Your only limit is your mind.", author: "Unknown" },
+{ text: "Push through the discomfort. Growth lives there.", author: "Unknown" },
+{ text: "A little progress each day adds up to big results.", author: "Satya Nani" },
+{ text: "Dream big. Start small. Act now.", author: "Robin Sharma" },
+{ text: "Do what you can, with what you have, where you are.", author: "Theodore Roosevelt" },
+{ text: "The comeback is always stronger than the setback.", author: "Unknown" },
+{ text: "Don’t stop when you’re tired. Stop when you’re done.", author: "Marilyn Monroe" },
+{ text: "Winners are not people who never fail but people who never quit.", author: "Edwin Louis Cole" },
+{ text: "Stay hungry. Stay foolish.", author: "Steve Jobs" },
+{ text: "Success is built on the courage to take action.", author: "Unknown" },
+{ text: "You are capable of amazing things.", author: "Unknown" },
+{ text: "Turn your wounds into wisdom.", author: "Oprah Winfrey" },
+{ text: "The expert in anything was once a beginner.", author: "Helen Hayes" },
+{ text: "Progress, not perfection.", author: "Unknown" },
+{ text: "Make today count.", author: "Unknown" },
+{ text: "The best way out is always through.", author: "Robert Frost" },
+{ text: "Excellence is not an act but a habit.", author: "Will Durant" },
+{ text: "Fear is temporary. Regret is forever.", author: "Unknown" },
+{ text: "You don’t have to be extreme, just consistent.", author: "Unknown" },
+{ text: "Focus on progress, not speed.", author: "Unknown" },
+{ text: "Success doesn’t just find you. You have to go out and get it.", author: "Unknown" },
+{ text: "Hard choices, easy life. Easy choices, hard life.", author: "Jerzy Gregorek" },
+{ text: "Momentum builds confidence.", author: "Unknown" },
+{ text: "One day or day one. You decide.", author: "Unknown" },
+{ text: "The grind never betrays you.", author: "Unknown" },
+{ text: "Stay committed to your decisions but flexible in your approach.", author: "Tony Robbins" },
+{ text: "You are stronger than your excuses.", author: "Unknown" },
+{ text: "Your future is created by what you do today, not tomorrow.", author: "Robert Kiyosaki" },
+{ text: "Keep your eyes on the stars and your feet on the ground.", author: "Theodore Roosevelt" },
+{ text: "The secret to getting ahead is starting before you’re ready.", author: "Marie Forleo" },
+{ text: "Success is the result of preparation meeting opportunity.", author: "Seneca" },
+{ text: "Nothing changes if nothing changes.", author: "Unknown" },
+{ text: "Every accomplishment starts with the decision to try.", author: "John F. Kennedy" },
+{ text: "You become what you repeatedly do.", author: "Aristotle" }
+    ];
+
+    function getDailyIndex() {
+      const d = new Date();
+      const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      return seed % QUOTES.length;
+    }
+
+    let quoteIndex = getDailyIndex();
+
+    function renderQuote(idx) {
+      const q = QUOTES[idx];
+      const textEl = document.getElementById('quoteText');
+      const authEl = document.getElementById('quoteAuthor');
+      textEl.style.animation = 'none';
+      authEl.style.animation = 'none';
+      requestAnimationFrame(() => {
+        textEl.style.animation = '';
+        authEl.style.animation = '';
+        textEl.textContent = q.text;
+        authEl.textContent = '— ' + q.author;
+      });
+      const now = new Date();
+      document.getElementById('quoteDay').textContent =
+        now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+
+    document.getElementById('quoteNext').addEventListener('click', () => {
+      quoteIndex = (quoteIndex + 1) % QUOTES.length;
+      renderQuote(quoteIndex);
+    });
+
+    renderQuote(quoteIndex);
+
+    /* ════════ ORIGINAL SESSION LOGIC — UNTOUCHED ════════ */
+    const API = '';
+    function token() { return localStorage.getItem('token'); }
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() };
+    }
+
+    let currentSession = null;
+    let timerId = null;
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function updateTimerDisplay() {
+      if (!currentSession) {
+        document.getElementById('timerDisplay').textContent = '00:00';
+        return;
+      }
+      let elapsed = currentSession.elapsedSec;
+      if (currentSession.running) {
+        elapsed += Math.floor((Date.now() - currentSession.lastTick) / 1000);
+      }
+      document.getElementById('timerDisplay').textContent = formatTime(elapsed);
+    }
+
+    function setMode(mode) {
+      const timerPill = document.getElementById('modeTimer');
+      const swPill = document.getElementById('modeStopwatch');
+      if (mode === 'stopwatch') {
+        timerPill.classList.remove('active');
+        swPill.classList.add('active');
+        document.getElementById('plannedRow').style.display = 'none';
+      } else {
+        timerPill.classList.add('active');
+        swPill.classList.remove('active');
+        document.getElementById('plannedRow').style.display = 'block';
+      }
+    }
+
+    async function loadMe() {
+      if (!token()) { window.location.href = '/'; return; }
+      try {
+        const res = await fetch(API + '/api/me', { headers: authHeaders() });
+        if (res.status === 401) { localStorage.clear(); window.location.href = '/'; return; }
+        const user = await res.json();
+        const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'User';
+        document.getElementById('userInfo').textContent = 'Hello, ' + name;
+      } catch {
+        document.getElementById('userInfo').textContent = 'Could not load profile.';
+      }
+    }
+
+    async function loadSessions() {
+      try {
+        const res = await fetch(API + '/api/study-sessions?limit=5', { headers: authHeaders() });
+        if (res.status !== 200) return;
+        const sessions = await res.json();
+        const list = document.getElementById('sessionList');
+        const stat = document.getElementById('fatigueStat');
+        const meta = document.getElementById('fatigueMeta');
+        if (!sessions || sessions.length === 0) {
+          list.innerHTML = '';
+          stat.textContent = '0h';
+          meta.textContent = 'No sessions yet. Start one below.';
+          return;
+        }
+        let totalMin = 0;
+        list.innerHTML = sessions.map(s => {
+          totalMin += s.duration_min || 0;
+          const goal = s.goal || 'session';
+          const focus = (s.focus_score ?? '—') + '';
+          return '<li>' +
+            (s.duration_min || 0) + ' min • ' + goal +
+            ' • focus ' + focus +
+            '</li>';
+        }).join('');
+        stat.textContent = (totalMin / 60).toFixed(1) + 'h';
+        meta.textContent = sessions.length + ' recent session(s)';
+      } catch (e) {
+        // ignore for now
+      }
+    }
+
+    function resetSessionState() {
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+      currentSession = null;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('pauseBtn').disabled = true;
+      document.getElementById('pauseBtn').textContent = 'Pause';
+      document.getElementById('endBtn').disabled = true;
+      updateTimerDisplay();
+    }
+
+    function startSession() {
+      const mode = document.getElementById('modeStopwatch').classList.contains('active') ? 'stopwatch' : 'timer';
+      const goal = document.getElementById('goal').value || 'unspecified';
+      const plannedMin = mode === 'timer' ? parseInt(document.getElementById('plannedMin').value || '0', 10) : 0;
+      if (mode === 'timer' && (!plannedMin || plannedMin <= 0)) {
+        alert('Please set timer minutes (e.g. 25).');
+        return;
+      }
+      if (!token()) { window.location.href = '/'; return; }
+
+      currentSession = {
+        mode,
+        goal,
+        plannedMin,
+        startedAt: Date.now(),
+        elapsedSec: 0,
+        lastTick: Date.now(),
+        running: true,
+        pauseCount: 0
+      };
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('pauseBtn').disabled = false;
+      document.getElementById('endBtn').disabled = false;
+
+      timerId = setInterval(() => {
+        if (!currentSession || !currentSession.running) return;
+        const now = Date.now();
+        currentSession.elapsedSec += Math.floor((now - currentSession.lastTick) / 1000);
+        currentSession.lastTick = now;
+        updateTimerDisplay();
+        if (currentSession.mode === 'timer' && currentSession.plannedMin > 0) {
+          const targetSec = currentSession.plannedMin * 60;
+          if (currentSession.elapsedSec >= targetSec && !currentSession.notifiedDone) {
+            currentSession.notifiedDone = true;
+            alert('Timer complete! You can end the session or keep going.');
+          }
+        }
+      }, 1000);
+      updateTimerDisplay();
+    }
+
+    function pauseResume() {
+      if (!currentSession) return;
+      if (currentSession.running) {
+        const now = Date.now();
+        currentSession.elapsedSec += Math.floor((now - currentSession.lastTick) / 1000);
+        currentSession.running = false;
+        currentSession.pauseCount += 1;
+        document.getElementById('pauseBtn').textContent = 'Resume';
+      } else {
+        currentSession.running = true;
+        currentSession.lastTick = Date.now();
+        document.getElementById('pauseBtn').textContent = 'Pause';
+      }
+      updateTimerDisplay();
+    }
+
+    function endSession() {
+      if (!currentSession) return;
+      if (currentSession.running) {
+        const now = Date.now();
+        currentSession.elapsedSec += Math.floor((now - currentSession.lastTick) / 1000);
+        currentSession.running = false;
+      }
+      updateTimerDisplay();
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+      document.getElementById('reflectionModal').style.display = 'flex';
+      document.getElementById('reflectionMsg').textContent = '';
+    }
+
+    function initReflectionControls() {
+      const ratingRow = document.getElementById('ratingRow');
+      ratingRow.addEventListener('click', (e) => {
+        if (e.target.dataset && e.target.dataset.rating) {
+          [...ratingRow.children].forEach(btn => btn.classList.remove('active'));
+          e.target.classList.add('active');
+        }
+      });
+      const onTaskRow = document.getElementById('onTaskRow');
+      onTaskRow.addEventListener('click', (e) => {
+        if (e.target.dataset && e.target.dataset.value) {
+          [...onTaskRow.children].forEach(btn => btn.classList.remove('active'));
+          e.target.classList.add('active');
+        }
+      });
+      document.getElementById('cancelReflection').addEventListener('click', () => {
+        document.getElementById('reflectionModal').style.display = 'none';
+        resetSessionState();
+      });
+      document.getElementById('reflectionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentSession) {
+          document.getElementById('reflectionModal').style.display = 'none';
+          return;
+        }
+        const ratingBtn = document.querySelector('#ratingRow button.active');
+        const rating = ratingBtn ? parseInt(ratingBtn.dataset.rating, 10) : 3;
+        const onTaskBtn = document.querySelector('#onTaskRow button.active');
+        const onTask = onTaskBtn ? onTaskBtn.dataset.value : 'somewhat';
+        const msg = document.getElementById('reflectionMsg');
+        msg.textContent = '';
+
+        const actualMin = Math.max(1, Math.round(currentSession.elapsedSec / 60));
+
+        try {
+          const res = await fetch(API + '/api/study-sessions', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+              mode: currentSession.mode,
+              goal: currentSession.goal,
+              planned_min: currentSession.plannedMin || 0,
+              actual_min: actualMin,
+              pause_count: currentSession.pauseCount || 0,
+              self_rating: rating,
+              self_on_task: onTask
+            })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            msg.textContent = data.error || 'Could not save session.';
+            msg.className = 'msg err';
+            return;
+          }
+          msg.className = 'msg ok';
+          msg.textContent = 'Session saved. Focus score computed!';
+          document.getElementById('reflectionModal').style.display = 'none';
+          resetSessionState();
+          loadSessions();
+        } catch (err) {
+          msg.textContent = 'Network error saving session.';
+          msg.className = 'msg err';
+        }
+      });
+    }
+
+    document.getElementById('logout').addEventListener('click', function(e) {
+      e.preventDefault();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    });
+    document.getElementById('modeTimer').addEventListener('click', () => setMode('timer'));
+    document.getElementById('modeStopwatch').addEventListener('click', () => setMode('stopwatch'));
+    document.getElementById('startBtn').addEventListener('click', startSession);
+    document.getElementById('pauseBtn').addEventListener('click', pauseResume);
+    document.getElementById('endBtn').addEventListener('click', endSession);
+
+    initReflectionControls();
+    loadMe();
+    loadSessions();
+  </script>
+</body>
+</html>

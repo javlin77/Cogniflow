@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  app:
+    build: .
+    container_name: go-auth-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo-db
+    environment:
+      - MONGO_URI=mongodb://mongo-db:27017
+      - GIN_MODE=release #for production
+    restart: always
+
+  mongo-db:
+    image: mongo:latest
+    container_name: mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: always
+
+volumes:
+  mongo-data:

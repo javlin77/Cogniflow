@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cogniflow — Login</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <nav class="nav-top">
+    <span class="logo">Cogniflow</span>
+    <div>
+      <a href="/">Home</a>
+      <a href="/signup">Sign Up</a>
+    </div>
+  </nav>
+  <div class="card">
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to your account</p>
+    <form id="form" onsubmit="return login(event)">
+      <div class="input-wrap">
+        <span class="icon" aria-hidden="true">✉</span>
+        <input type="email" id="email" placeholder="Email" required autocomplete="email">
+      </div>
+      <div class="input-wrap">
+        <span class="icon" aria-hidden="true">🔒</span>
+        <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn-primary">Login</button>
+    </form>
+    <div class="footer">
+      <a href="/forgot-password">Forgot password?</a>
+    </div>
+    <p class="footer">Don't have an account? <a href="/signup">Sign up</a></p>
+    <div class="msg" id="message"></div>
+  </div>
+  <script>
+    const API = '';
+    async function login(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const msg = document.getElementById('message');
+      msg.textContent = '';
+      msg.className = 'msg';
+      try {
+        const res = await fetch(API + '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+          msg.className = 'msg ok';
+          msg.textContent = 'Login successful! Redirecting...';
+          setTimeout(() => { window.location.href = '/dashboard'; }, 600);
+        } else {
+          msg.className = 'msg err';
+          msg.textContent = data.error || 'Login failed';
+        }
+      } catch (err) {
+        msg.className = 'msg err';
+        msg.textContent = 'Network error. Is the server running?';
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>
